@@ -1,4 +1,4 @@
-# snake_01
+# Snake v01
 
 ![Rust](https://github.com/const-i/snake_01/workflows/Rust/badge.svg)
 
