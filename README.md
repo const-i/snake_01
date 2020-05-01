@@ -9,3 +9,7 @@ This has been an attempt at learning the Rust language, and using it as a way to
 ## Demo
 
 ![Demo GIF](./docs/images/demo.gif)
+
+## License
+
+See the [LICENSE](./LICENSE) file for license rights and limitations.
