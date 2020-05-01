@@ -10,6 +10,15 @@ This has been an attempt at learning the Rust language, and using it as a way to
 
 ![Demo GIF](./docs/images/demo.gif)
 
+## How to play
+
+```
+$ git clone https://github.com/const-i/snake_01.git
+$ cd snake_01
+$ cargo run
+```
+
+
 ## License
 
 See the [LICENSE](./LICENSE) file for license rights and limitations.
