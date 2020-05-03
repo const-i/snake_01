@@ -19,12 +19,12 @@ fn main() {
 fn fitness_function(delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, snake_dead: i64) -> i64 {
     let mut fitness: i64 = 0;
     if dist_after < dist_before {
-        fitness += 5;
+        fitness += 1;
     } else {
-        fitness -= 1;
+        fitness -= 2;
     }
-    fitness += dist_after % 2;
-    fitness += 200 * snake_eat;
+    fitness += 1;   // Time
+    fitness += 100 * snake_eat;
     fitness
     //500 * score + time - 2 * food_distance
     //100 * score + score * 1000 / (time + 1)  + time - food_distance

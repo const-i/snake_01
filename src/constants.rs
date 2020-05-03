@@ -13,7 +13,7 @@ pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 // Neural Network Game
 pub const NUM_INDIVIDUALS: u32 = 1000;
 pub const NUM_GAMES: u32 = 20;
-pub const NUM_GENERATIONS: u32 = 20;
+pub const NUM_GENERATIONS: u32 = 50;
 pub const NN_MAX_GAME_TIME: u32 = 100;
 
 // Genetic Algorithm Properties
