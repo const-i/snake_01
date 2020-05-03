@@ -14,11 +14,11 @@ pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 pub const NUM_INDIVIDUALS: u32 = 1000;
 pub const NUM_GAMES: u32 = 20;
 pub const NUM_GENERATIONS: u32 = 20;
-pub const NN_MAX_GAME_TIME: u32 = 200;
+pub const NN_MAX_GAME_TIME: u32 = 100;
 
 // Genetic Algorithm Properties
 pub const MUTATION_PROBABILITY: f64 = 0.005;
-pub const CROSSOVER_PROBABILITY: f64 = 0.0;
+pub const CROSSOVER_PROBABILITY: f64 = 0.01;
 
 // Game Render Properties
 pub const BLOCK_SIZE: u32 = 25;
