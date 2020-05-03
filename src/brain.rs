@@ -12,7 +12,7 @@ fn sigmoid(z: f64) -> f64 {
 
 fn get_normal() -> f64 {
     let mut rng = rand::thread_rng();
-    let normal = Normal::new(2.0, 3.0).unwrap();
+    let normal = Normal::new(0.0, 1.0).unwrap();
     normal.sample(&mut rng)
 }
 

@@ -37,6 +37,25 @@ impl Render {
         }
     }
 
+    pub fn run(&mut self) {
+        let mut game = Game::new();
+        game.init();
+
+        while let Some(e) = self.events.next(&mut self.window) {
+            if let Some(args) = e.render_args() {
+                self.render_game(&args, &game);
+            }
+
+            if let Some(args) = e.update_args() {
+                game.next_tick(args.dt);
+            }
+
+            if let Some(button) = e.press_args() {
+                self.handle_events(button, &mut game);
+            }
+        }
+    }
+
     pub fn run_nn(&mut self, nn: &NN) {
         let mut game = Game::new();
         game.init();
