@@ -8,7 +8,7 @@ This has been an attempt at learning the Rust language, and using it as a way to
 
 ## Demo
 
-![Demo GIF](./docs/images/demo.gif)
+![Demo GIF](./docs/images/demo2.gif)
 
 ## How to play
 
