@@ -16,8 +16,18 @@ fn main() {
     iterate_population(NUM_INDIVIDUALS, NUM_GAMES, NUM_GENERATIONS);
 }
 
-fn fitness_function(time: i64, score: i64, food_distance: i64) -> i64 {
-    500 * score + time - 2 * food_distance
+fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> i64 {
+    let mut fitness: i64 = 0;
+    if dist_after < dist_before {
+        fitness += 1;
+    } else {
+        fitness -= 2;
+    }
+    fitness += 1; // Time
+    fitness += 100 * snake_eat;
+    fitness
+    //500 * score + time - 2 * food_distance
+    //100 * score + score * 1000 / (time + 1)  + time - food_distance
 }
 
 fn iterate_population(num_nn: u32, num_games: u32, num_generations: u32) {
@@ -45,19 +55,12 @@ fn population_play_parallel(pop: &Population, num_games: u32) -> Vec<i64> {
     fitness
 }
 
-fn nn_play(nn: &NN, num_games: u32, fitness_function: fn(i64, i64, i64) -> i64) -> i64 {
+fn nn_play(nn: &NN, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64) -> i64) -> i64 {
     let mut game = Game::new();
     let mut fitness: i64 = 0;
     for _ in 0..num_games {
         game.init();
-        let (score, time) = game.run_nn(nn);
-        fitness += fitness_function(time as i64, score as i64, get_snake_dist(&game));
+        fitness += game.run_nn(nn, fitness_function);
     }
     fitness
-}
-
-fn get_snake_dist(game: &Game) -> i64 {
-    let dist_x = (game.snake.body[0].position.x as i64 - game.food.position.x as i64).abs();
-    let dist_y = (game.snake.body[0].position.y as i64 - game.food.position.y as i64).abs();
-    dist_x + dist_y
 }

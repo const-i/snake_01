@@ -229,17 +229,40 @@ impl Game {
         nn
     }
 
-    pub fn run_nn(&mut self, nn: &NN) -> (u32, u32) {
+    pub fn run_nn(&mut self, nn: &NN, fitness_function: fn(i64, i64, i64, i64, i64) -> i64) -> i64 {
         self.init();
+        let mut fitness: i64 = 0;
         while self.snake.alive {
             let dir = self.get_dir_nn(&nn);
             self.update(dir);
+
+            // Before moving store some results
+            let dist_before = self.get_food_dist();
+            let time_before = self.time;
+
+            // Make the move
             self.next_tick(1f64);
+
+            // After the move store some results
+            let dist_after = self.get_food_dist();
+            let time_after = self.time;
+            let snake_eat = if self.snake.eat { 1i64 } else { 0i64 };
+            let snake_dead = if self.snake.alive { 0i64 } else { 1i64 };
+
+            // Add to fitness
+            fitness += fitness_function(
+                time_after as i64 - time_before as i64,
+                dist_before,
+                dist_after,
+                snake_eat,
+                snake_dead,
+            );
+
             if self.time >= NN_MAX_GAME_TIME {
                 self.snake.alive = false;
             }
         }
-        (self.score, self.time)
+        fitness
     }
 
     pub fn get_dir_nn(&mut self, nn: &NN) -> Direction {
@@ -279,6 +302,12 @@ impl Game {
                 return pos;
             }
         }
+    }
+
+    fn get_food_dist(&self) -> i64 {
+        let dist_x = (self.snake.body[0].position.x as i64 - self.food.position.x as i64).abs();
+        let dist_y = (self.snake.body[0].position.y as i64 - self.food.position.y as i64).abs();
+        dist_x + dist_y
     }
 
     fn get_nn_inputs(&self) -> Vec<f64> {
@@ -627,6 +656,20 @@ mod tests {
     fn test_game_run_nn() {
         use std::cmp;
 
+        fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> i64 {
+            let mut fitness: i64 = 0;
+            if dist_after < dist_before {
+                fitness += 1;
+            } else {
+                fitness -= 2;
+            }
+            fitness += 1; // Time
+            fitness += 100 * snake_eat;
+            fitness
+            //500 * score + time - 2 * food_distance
+            //100 * score + score * 1000 / (time + 1)  + time - food_distance
+        }
+
         let mut game = Game::new();
         game.init();
         let mut nn = NN::new();
@@ -634,7 +677,7 @@ mod tests {
         let layer2 = Layer::new(8, 4).unwrap();
         nn.add(layer1);
         nn.add(layer2);
-        game.run_nn(&mut nn);
+        game.run_nn(&mut nn, fitness_function);
         println!("{}", game.time);
         assert!(game.time >= cmp::min(BOARD_WIDTH as u32, BOARD_HEIGHT as u32) / 2);
     }
