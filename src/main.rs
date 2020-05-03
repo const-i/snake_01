@@ -16,14 +16,14 @@ fn main() {
     iterate_population(NUM_INDIVIDUALS, NUM_GAMES, NUM_GENERATIONS);
 }
 
-fn fitness_function(delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, snake_dead: i64) -> i64 {
+fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> i64 {
     let mut fitness: i64 = 0;
     if dist_after < dist_before {
         fitness += 1;
     } else {
         fitness -= 2;
     }
-    fitness += 1;   // Time
+    fitness += 1; // Time
     fitness += 100 * snake_eat;
     fitness
     //500 * score + time - 2 * food_distance
@@ -63,10 +63,4 @@ fn nn_play(nn: &NN, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64
         fitness += game.run_nn(nn, fitness_function);
     }
     fitness
-}
-
-fn get_snake_dist(game: &Game) -> i64 {
-    let dist_x = (game.snake.body[0].position.x as i64 - game.food.position.x as i64).abs();
-    let dist_y = (game.snake.body[0].position.y as i64 - game.food.position.y as i64).abs();
-    dist_x + dist_y
 }

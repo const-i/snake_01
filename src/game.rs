@@ -656,6 +656,20 @@ mod tests {
     fn test_game_run_nn() {
         use std::cmp;
 
+        fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> i64 {
+            let mut fitness: i64 = 0;
+            if dist_after < dist_before {
+                fitness += 1;
+            } else {
+                fitness -= 2;
+            }
+            fitness += 1; // Time
+            fitness += 100 * snake_eat;
+            fitness
+            //500 * score + time - 2 * food_distance
+            //100 * score + score * 1000 / (time + 1)  + time - food_distance
+        }
+
         let mut game = Game::new();
         game.init();
         let mut nn = NN::new();
@@ -663,7 +677,7 @@ mod tests {
         let layer2 = Layer::new(8, 4).unwrap();
         nn.add(layer1);
         nn.add(layer2);
-        game.run_nn(&mut nn);
+        game.run_nn(&mut nn, fitness_function);
         println!("{}", game.time);
         assert!(game.time >= cmp::min(BOARD_WIDTH as u32, BOARD_HEIGHT as u32) / 2);
     }
