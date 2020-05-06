@@ -12,23 +12,23 @@ fn get_normal() -> f64 {
     normal.sample(&mut rng)
 }
 
-pub struct State_Action {
+pub struct StateAction {
     pub state: Vec<f64>,
     pub quality: Vec<f64>,
 }
 
-impl State_Action {
-    pub fn new(state: Vec<f64>, num_actions: usize) -> State_Action {
-        State_Action {
+impl StateAction {
+    pub fn new(state: Vec<f64>, num_actions: usize) -> StateAction {
+        StateAction {
             state,
-            //quality: (0..num_actions).map(|_| get_normal()).collect(),    
-            quality: vec![0.0_f64; num_actions],    // Initializing at 0 gives objectively better results
+            //quality: (0..num_actions).map(|_| get_normal()).collect(),
+            quality: vec![0.0_f64; num_actions], // Initializing at 0 gives objectively better results
         }
     }
 }
 
 pub struct QLearner {
-    pub q: Vec<State_Action>,
+    pub q: Vec<StateAction>,
     pub epsilon: f64,
     pub learning_rate: f64,
     pub discount_factor: f64,
@@ -40,10 +40,10 @@ pub struct QLearner {
 impl QLearner {
     pub fn new(len_states: usize, num_actions: usize) -> QLearner {
         let states: Vec<Vec<usize>> = (0..len_states).map(|_| (0..2)).multi_cartesian_product().collect();
-        let mut sa: Vec<State_Action> = Vec::new();
+        let mut sa: Vec<StateAction> = Vec::new();
         for state in states {
             let a: Vec<f64> = state.iter().map(|x| *x as f64).collect();
-            sa.push(State_Action::new(a, num_actions));
+            sa.push(StateAction::new(a, num_actions));
         }
         QLearner {
             num_states: sa.len(),
@@ -66,8 +66,8 @@ impl QLearner {
             match found {
                 Some(sa) => get_index_max_float(&sa.quality).unwrap(),
                 None => {
-                    let state_copy: Vec<f64> = state.into_iter().map(|x| *x).collect();
-                    let mut sa = State_Action::new(state_copy, self.num_actions);
+                    let state_copy: Vec<f64> = state.iter().copied().map(|x| x).collect();
+                    let sa = StateAction::new(state_copy, self.num_actions);
                     let action = get_index_max_float(&sa.quality).unwrap();
                     self.q.push(sa);
                     action
@@ -119,14 +119,14 @@ mod tests {
 
     #[test]
     fn get_permutations() {
-        let mut perms: Vec<Vec<usize>> = (0..3).map(|_| (0..2)).multi_cartesian_product().collect();
+        let perms: Vec<Vec<usize>> = (0..3).map(|_| (0..2)).multi_cartesian_product().collect();
         println!("{:?}", perms);
         assert_eq!(perms.len(), 2_usize.pow(3));
     }
 
     #[test]
     fn test_get_index_max_float() {
-        let mut q: Vec<f64> = (0..4).map(|_| get_normal()).collect();
+        let q: Vec<f64> = (0..4).map(|_| get_normal()).collect();
         println!("{:?}", q);
         let i = get_index_max_float(&q);
         println!("{:?}", i);
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_get_max_float() {
-        let mut q: Vec<f64> = (0..4).map(|_| get_normal()).collect();
+        let q: Vec<f64> = (0..4).map(|_| get_normal()).collect();
         println!("{:?}", q);
         let q_max = get_max_float(&q);
         println!("{:?}", q_max);

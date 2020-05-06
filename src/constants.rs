@@ -18,7 +18,7 @@ pub const NN_MAX_GAME_TIME: u32 = 100;
 
 // Q-Learing Game
 pub const NUM_GAMES_QL: u32 = 2000;
-pub const NUM_QLS: u32 = 4;    // Generally multiple of number of cores
+pub const NUM_QLS: u32 = 4; // Generally multiple of number of cores
 
 // Genetic Algorithm Properties
 pub const MUTATION_PROBABILITY: f64 = 0.005;

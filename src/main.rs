@@ -10,14 +10,30 @@ use rayon::prelude::*;
 
 use crate::brain::{Population, NN};
 use crate::constants::*;
-use crate::game::{Direction, Game};
+use crate::game::Game;
 use crate::qlearn::QLearner;
 use crate::render::Render;
 
+enum GameType {
+    Human,
+    GeneticAlgorithm,
+    QLearning,
+}
+
 fn main() {
+    let game_type = GameType::QLearning;
+
+    match game_type {
+        GameType::Human => render_game(),
+        GameType::GeneticAlgorithm => {
+            iterate_population(NUM_INDIVIDUALS, NUM_GAMES_NN, NUM_GENERATIONS, fitness_function)
+        }
+        GameType::QLearning => iterate_qls(NUM_QLS, NUM_GAMES_QL, fitness_function),
+    }
+
     //render_game();
     //iterate_population(NUM_INDIVIDUALS, NUM_GAMES_NN, NUM_GENERATIONS, fitness_function);
-    iterate_qls(NUM_QLS, NUM_GAMES_QL, fitness_function);
+    //iterate_qls(NUM_QLS, NUM_GAMES_QL, fitness_function);
 }
 
 fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, snake_dead: i64) -> f64 {
@@ -103,8 +119,11 @@ fn iterate_qls(num_qls: u32, num_games: u32, fitness_function: fn(i64, i64, i64,
     render.run_ql(&mut qls[max_i]);
 }
 
-
-fn ql_play_parallel(qls: &mut Vec<QLearner>, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> usize {
+fn ql_play_parallel(
+    qls: &mut Vec<QLearner>,
+    num_games: u32,
+    fitness_function: fn(i64, i64, i64, i64, i64) -> f64,
+) -> usize {
     let fitness: Vec<f64> = qls
         .par_iter_mut()
         .map(|ql| ql_play(ql, num_games, fitness_function))
@@ -118,7 +137,6 @@ fn ql_play_parallel(qls: &mut Vec<QLearner>, num_games: u32, fitness_function: f
         .unwrap_or(0)
 }
 
-
 fn ql_play(ql: &mut QLearner, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
     let mut game = Game::new();
     let mut fitness: f64 = 0f64;
@@ -128,8 +146,6 @@ fn ql_play(ql: &mut QLearner, num_games: u32, fitness_function: fn(i64, i64, i64
     }
     fitness
 }
-
-
 
 // --------------------------------------------------------------------------------------
 // ----------------------------------Human Game------------------------------------------
