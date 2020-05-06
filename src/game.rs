@@ -6,6 +6,7 @@ use std::fmt;
 
 use crate::brain::{Layer, Population, NN};
 use crate::constants::*;
+use crate::qlearn::QLearner;
 
 #[derive(Copy, Clone)]
 pub struct Position {
@@ -265,6 +266,50 @@ impl Game {
         fitness
     }
 
+    pub fn run_ql(&mut self, ql: &mut QLearner, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
+        self.init();
+        let mut fitness: f64 = 0f64;
+        while self.snake.alive {
+            let state_initial = self.get_nn_inputs();
+            let action = ql.get_action(&state_initial);
+            let dir = self.get_direction_from_index(action);
+            self.update(dir);
+
+            // Before moving store some results
+            let dist_before = self.get_food_dist();
+            let time_before = self.time;
+
+            // Make the move
+            self.next_tick(1f64);
+
+            // After the move store some results
+            let dist_after = self.get_food_dist();
+            let time_after = self.time;
+            let snake_eat = if self.snake.eat { 1i64 } else { 0i64 };
+            let snake_dead = if self.snake.alive { 0i64 } else { 1i64 };
+
+            // Get fitness & State
+            let fit = fitness_function(
+                time_after as i64 - time_before as i64,
+                dist_before,
+                dist_after,
+                snake_eat,
+                snake_dead,
+            );
+            let state_final = self.get_nn_inputs();
+            fitness += fit;
+
+            // Update the Q Matrix
+            ql.update_q(&state_initial, action, fit, &state_final);
+
+            // End if we are out of time
+            if self.time >= NN_MAX_GAME_TIME {
+                self.snake.alive = false;
+            }
+        }
+        fitness
+    }
+
     pub fn get_dir_nn(&mut self, nn: &NN) -> Direction {
         let nn_out = nn.propagate(self.get_nn_inputs()).unwrap();
         let i_max = nn_out
@@ -274,7 +319,15 @@ impl Game {
             .max_by(|a, b| a.partial_cmp(b).expect("Nan!"))
             .unwrap()
             .1;
-        match i_max {
+        self.get_direction_from_index(i_max)
+    }
+
+    pub fn get_dir_ql(&mut self, ql: &mut QLearner) -> Direction {
+        self.get_direction_from_index(ql.get_action(&self.get_nn_inputs()))
+    }
+
+    pub fn get_direction_from_index(&self, index: usize) -> Direction {
+        match index {
             0 => Direction::RIGHT,
             1 => Direction::UP,
             2 => Direction::LEFT,
@@ -304,13 +357,13 @@ impl Game {
         }
     }
 
-    fn get_food_dist(&self) -> i64 {
+    pub fn get_food_dist(&self) -> i64 {
         let dist_x = (self.snake.body[0].position.x as i64 - self.food.position.x as i64).abs();
         let dist_y = (self.snake.body[0].position.y as i64 - self.food.position.y as i64).abs();
         dist_x + dist_y
     }
 
-    fn get_nn_inputs(&self) -> Vec<f64> {
+    pub fn get_nn_inputs(&self) -> Vec<f64> {
         let head_pos = self.snake.body[0].position;
         let food_pos = self.food.position;
 

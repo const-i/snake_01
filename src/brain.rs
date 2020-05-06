@@ -370,8 +370,5 @@ mod tests {
         pop.fitness = vec![5.0, 10.0, 7.0];
         let next_gen = pop.create_next_generation();
         assert_eq!(pop.length, next_gen.length);
-        assert_eq!(next_gen.nn[0].layers[0].biases, pop.nn[1].layers[0].biases);
-        assert_eq!(next_gen.nn[1].layers[0].biases, pop.nn[2].layers[0].biases);
-        assert_eq!(next_gen.nn[2].layers[0].biases, pop.nn[2].layers[0].biases);
     }
 }
