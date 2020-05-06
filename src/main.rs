@@ -1,6 +1,6 @@
-mod brain;
 mod constants;
 mod game;
+mod gen_alg;
 mod qlearn;
 mod render;
 
@@ -8,9 +8,9 @@ extern crate rayon;
 
 use rayon::prelude::*;
 
-use crate::brain::{Population, NN};
 use crate::constants::*;
 use crate::game::Game;
+use crate::gen_alg::{Population, NN};
 use crate::qlearn::QLearner;
 use crate::render::Render;
 

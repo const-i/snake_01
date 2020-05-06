@@ -3,9 +3,9 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
-use crate::brain::NN;
 use crate::constants::*;
 use crate::game::{Block, Direction, Game};
+use crate::gen_alg::NN;
 use crate::qlearn::QLearner;
 
 use glutin_window::GlutinWindow;
