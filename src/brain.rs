@@ -166,7 +166,7 @@ impl NN {
 pub struct Population {
     pub length: usize,
     pub nn: Vec<NN>,
-    pub fitness: Vec<i64>,
+    pub fitness: Vec<f64>,
 }
 
 impl Population {
@@ -180,7 +180,7 @@ impl Population {
 
     pub fn add(&mut self, nn: NN) {
         self.nn.push(nn);
-        self.fitness.push(0);
+        self.fitness.push(0f64);
         self.length += 1;
     }
 
@@ -205,8 +205,8 @@ impl Population {
     }
 
     pub fn get_sorted_index(&self) -> Vec<usize> {
-        let mut index: Vec<(usize, i64)> = self.fitness.clone().into_iter().enumerate().collect();
-        index.sort_by(|(_, af), (_, bf)| bf.cmp(af));
+        let mut index: Vec<(usize, f64)> = self.fitness.clone().into_iter().enumerate().collect();
+        index.sort_by(|(_, af), (_, bf)| bf.partial_cmp(af).unwrap_or(std::cmp::Ordering::Equal));
         index.iter().map(|(i, _)| *i).collect()
     }
 }
@@ -329,7 +329,7 @@ mod tests {
         nn2.add(layer2);
         pop.nn.push(nn1);
         pop.nn.push(nn2);
-        pop.fitness = vec![5, 10];
+        pop.fitness = vec![5.0, 10.0];
         let si = pop.get_sorted_index();
         assert_eq!(si, vec![1, 0]);
         let mut nn3 = NN::new();
@@ -338,7 +338,7 @@ mod tests {
         nn3.add(layer1);
         nn3.add(layer2);
         pop.nn.push(nn3);
-        pop.fitness = vec![5, 10, 7];
+        pop.fitness = vec![5.0, 10.0, 7.0];
         let si = pop.get_sorted_index();
         assert_eq!(si, vec![1, 2, 0]);
     }
@@ -358,7 +358,7 @@ mod tests {
         nn2.add(layer2);
         pop.add(nn1);
         pop.add(nn2);
-        pop.fitness = vec![5, 10];
+        pop.fitness = vec![5.0, 10.0];
         let next_gen = pop.create_next_generation();
         assert_eq!(pop.length, next_gen.length);
         let mut nn3 = NN::new();
@@ -367,7 +367,7 @@ mod tests {
         nn3.add(layer1);
         nn3.add(layer2);
         pop.add(nn3);
-        pop.fitness = vec![5, 10, 7];
+        pop.fitness = vec![5.0, 10.0, 7.0];
         let next_gen = pop.create_next_generation();
         assert_eq!(pop.length, next_gen.length);
         assert_eq!(next_gen.nn[0].layers[0].biases, pop.nn[1].layers[0].biases);
