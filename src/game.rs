@@ -229,9 +229,9 @@ impl Game {
         nn
     }
 
-    pub fn run_nn(&mut self, nn: &NN, fitness_function: fn(i64, i64, i64, i64, i64) -> i64) -> i64 {
+    pub fn run_nn(&mut self, nn: &NN, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
         self.init();
-        let mut fitness: i64 = 0;
+        let mut fitness: f64 = 0f64;
         while self.snake.alive {
             let dir = self.get_dir_nn(&nn);
             self.update(dir);
@@ -656,15 +656,15 @@ mod tests {
     fn test_game_run_nn() {
         use std::cmp;
 
-        fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> i64 {
-            let mut fitness: i64 = 0;
+        fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> f64 {
+            let mut fitness: f64 = 0.0_f64;
             if dist_after < dist_before {
-                fitness += 1;
+                fitness += 1.0_f64;
             } else {
-                fitness -= 2;
+                fitness -= 2.0_f64;
             }
-            fitness += 1; // Time
-            fitness += 100 * snake_eat;
+            fitness += 1.0_f64; // Time
+            fitness += 100.0_f64 * snake_eat as f64;
             fitness
             //500 * score + time - 2 * food_distance
             //100 * score + score * 1000 / (time + 1)  + time - food_distance

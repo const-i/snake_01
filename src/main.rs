@@ -17,15 +17,23 @@ fn main() {
     iterate_population(NUM_INDIVIDUALS, NUM_GAMES, NUM_GENERATIONS, fitness_function);
 }
 
-fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> i64 {
-    let mut fitness: i64 = 0;
+fn fitness_function(_delta_t: i64, dist_before: i64, dist_after: i64, snake_eat: i64, _snake_dead: i64) -> f64 {
+    let mut fitness: f64 = 0.0_f64;
+    // Distance
     if dist_after < dist_before {
-        fitness += 1;
+        fitness += 1.0_f64;
     } else {
-        fitness -= 3;
+        fitness -= 2.0_f64;
     }
-    fitness += 1; // Time
-    fitness += 100 * snake_eat;
+    if dist_after < 5 {
+        fitness += 1.0_f64;
+    }
+    // Time
+    fitness += 1.0_f64;
+    // Food
+    if snake_eat > 0 {
+        fitness += 100.0_f64;
+    }
     fitness
 }
 
@@ -33,7 +41,7 @@ fn iterate_population(
     num_nn: u32,
     num_games: u32,
     num_generations: u32,
-    fitness_function: fn(i64, i64, i64, i64, i64) -> i64,
+    fitness_function: fn(i64, i64, i64, i64, i64) -> f64,
 ) {
     let mut pop = Game::get_population(num_nn);
     for i in 0..num_generations - 1 {
@@ -53,9 +61,9 @@ fn iterate_population(
 fn population_play_parallel(
     pop: &Population,
     num_games: u32,
-    fitness_function: fn(i64, i64, i64, i64, i64) -> i64,
-) -> Vec<i64> {
-    let fitness: Vec<i64> = pop
+    fitness_function: fn(i64, i64, i64, i64, i64) -> f64,
+) -> Vec<f64> {
+    let fitness: Vec<f64> = pop
         .nn
         .par_iter()
         .map(|n| nn_play(n, num_games, fitness_function))
@@ -63,9 +71,9 @@ fn population_play_parallel(
     fitness
 }
 
-fn nn_play(nn: &NN, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64) -> i64) -> i64 {
+fn nn_play(nn: &NN, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
     let mut game = Game::new();
-    let mut fitness: i64 = 0;
+    let mut fitness: f64 = 0f64;
     for _ in 0..num_games {
         game.init();
         fitness += game.run_nn(nn, fitness_function);
