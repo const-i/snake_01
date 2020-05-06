@@ -4,8 +4,8 @@ use rand::Rng;
 use std::collections::VecDeque;
 use std::fmt;
 
-use crate::brain::{Layer, Population, NN};
 use crate::constants::*;
+use crate::gen_alg::{Layer, Population, NN};
 use crate::qlearn::QLearner;
 
 #[derive(Copy, Clone)]
