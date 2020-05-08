@@ -4,6 +4,7 @@ use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
 use crate::constants::*;
+use crate::game::Brain;
 
 fn sigmoid(z: f64) -> f64 {
     let e = std::f64::consts::E;
@@ -41,7 +42,7 @@ impl Layer {
         }
     }
 
-    fn feed_forward(&self, inputs: Vec<f64>) -> Option<Vec<f64>> {
+    fn feed_forward(&self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
         if self.num_inputs != inputs.len() as u32 {
             None
         } else {
@@ -121,6 +122,15 @@ impl NN {
         NN { layers: Vec::new() }
     }
 
+    pub fn new_defined(layer_def: &[[usize; 2]]) -> NN {
+        let mut nn = NN::new();
+        for layer in layer_def {
+            nn.add(Layer::new(layer[0] as u32, layer[1] as u32).unwrap());
+        }
+
+        nn
+    }
+
     pub fn add(&mut self, layer: Layer) -> bool {
         if self.layers.is_empty() || self.layers.last().unwrap().num_neurons == layer.num_inputs {
             self.layers.push(layer);
@@ -130,18 +140,22 @@ impl NN {
         }
     }
 
-    pub fn propagate(&self, inputs: Vec<f64>) -> Option<Vec<f64>> {
+    pub fn propagate(&self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
         if self.layers.is_empty() || self.layers[0].num_inputs != inputs.len() as u32 {
             None
         } else {
-            let mut this_in = Some(inputs);
+            let mut this_in = inputs;
+            let mut this_out: Vec<f64> = Vec::new();
             for layer in &self.layers {
-                match this_in {
-                    Some(vals) => this_in = layer.feed_forward(vals),
-                    None => this_in = None,
+                let temp = layer.feed_forward(&this_in);
+                match temp {
+                    Some(vals) => this_out = vals,
+                    None => return None,
                 }
+                //this_out = layer.feed_forward(&this_in).unwrap();
+                this_in = &this_out;
             }
-            this_in
+            Some(this_out)
         }
     }
 
@@ -163,6 +177,26 @@ impl NN {
     }
 }
 
+impl Brain for NN {
+    fn get_action(&mut self, inputs: &Vec<f64>) -> Option<usize> {
+        let output = self.propagate(inputs);
+        match output {
+            Some(vals) => get_index_max_float(&vals),
+            None => None,
+        }
+    }
+
+    fn train(
+        &mut self,
+        _state_initial: &Vec<f64>,
+        _action: usize,
+        _reward: f64,
+        _state_final: &Vec<f64>,
+    ) -> Option<bool> {
+        Some(true)
+    }
+}
+
 pub struct Population {
     pub length: usize,
     pub nn: Vec<NN>,
@@ -176,6 +210,14 @@ impl Population {
             nn: Vec::new(),
             fitness: Vec::new(),
         }
+    }
+
+    pub fn new_defined(num_nn: u32, layer_def: &[[usize; 2]]) -> Population {
+        let mut pop = Population::new();
+        for _ in 0..num_nn {
+            pop.add(NN::new_defined(layer_def));
+        }
+        pop
     }
 
     pub fn add(&mut self, nn: NN) {
@@ -211,6 +253,14 @@ impl Population {
     }
 }
 
+fn get_index_max_float(input: &Vec<f64>) -> Option<usize> {
+    input
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(index, _)| index)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,10 +293,10 @@ mod tests {
     fn test_layer_feed_forward() {
         let layer = Layer::new(3, 2).unwrap();
         let mut inputs = vec![1f64, 2f64];
-        let mut outputs = layer.feed_forward(inputs);
+        let mut outputs = layer.feed_forward(&inputs);
         assert_eq!(outputs, None);
         inputs = vec![0f64, 1f64, 0f64];
-        outputs = layer.feed_forward(inputs);
+        outputs = layer.feed_forward(&inputs);
         println!("{:?}", outputs);
         assert_eq!(outputs.unwrap().len(), 2);
         //assert!(false);
@@ -256,6 +306,16 @@ mod tests {
     fn test_nn_new() {
         let nn = NN::new();
         assert_eq!(nn.layers.len(), 0);
+    }
+
+    #[test]
+    fn test_nn_new_defined() {
+        let nn = NN::new_defined(&[[4, 3], [3, 2], [2, 1]]);
+        assert_eq!(nn.layers.len(), 3);
+        assert_eq!(nn.layers[0].num_inputs, 4);
+        assert_eq!(nn.layers[0].num_neurons, 3);
+        assert_eq!(nn.layers[2].num_inputs, 2);
+        assert_eq!(nn.layers[2].num_neurons, 1);
     }
 
     #[test]
@@ -271,26 +331,34 @@ mod tests {
 
     #[test]
     fn test_nn_propagate() {
-        let mut nn = NN::new();
-        let layer1 = Layer::new(3, 2).unwrap();
-        let layer2 = Layer::new(2, 1).unwrap();
-        nn.add(layer1);
-        nn.add(layer2);
-        let mut inputs = vec![1f64, 2f64];
-        let mut outputs = nn.propagate(inputs);
+        let nn = NN::new_defined(&[[3, 2], [2, 1]]);
+        let inputs = vec![0.0_f64, 1.0_f64];
+        let outputs = nn.propagate(&inputs);
         assert_eq!(outputs, None);
-        inputs = vec![1f64, 2f64, 3f64];
-        outputs = nn.propagate(inputs);
-        let val = outputs.unwrap();
-        assert_eq!(val.len(), 1);
-        assert!(val[0] >= 0f64);
-        assert!(val[0] <= 1f64);
+        let inputs = vec![0.0_f64, 1.0_f64, 0.0_f64];
+        let outputs = nn.propagate(&inputs);
+        assert_ne!(outputs, None);
+        let vals = outputs.unwrap();
+        assert_eq!(vals.len(), 1);
+        assert!(vals[0] >= 0f64);
+        assert!(vals[0] <= 1f64);
     }
 
     #[test]
     fn test_population_new() {
         let pop = Population::new();
         assert_eq!(pop.nn.len(), 0);
+    }
+
+    #[test]
+    fn test_population_new_defined() {
+        let pop = Population::new_defined(10, &[[4, 3], [3, 2], [2, 1]]);
+        assert_eq!(pop.length, 10);
+        assert_eq!(pop.nn[0].layers.len(), 3);
+        assert_eq!(pop.nn[0].layers[0].num_inputs, 4);
+        assert_eq!(pop.nn[0].layers[0].num_neurons, 3);
+        assert_eq!(pop.nn[9].layers[2].num_inputs, 2);
+        assert_eq!(pop.nn[9].layers[2].num_neurons, 1);
     }
 
     #[test]

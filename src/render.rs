@@ -4,9 +4,7 @@ extern crate opengl_graphics;
 extern crate piston;
 
 use crate::constants::*;
-use crate::game::{Block, Direction, Game};
-use crate::gen_alg::NN;
-use crate::qlearn::QLearner;
+use crate::game::{Block, Brain, Direction, Game};
 
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
@@ -57,7 +55,7 @@ impl Render {
         }
     }
 
-    pub fn run_nn(&mut self, nn: &NN) {
+    pub fn run_brain<T: Brain>(&mut self, brain: &mut T) {
         let mut game = Game::new();
         game.init();
 
@@ -67,28 +65,7 @@ impl Render {
             }
 
             if let Some(args) = e.update_args() {
-                let dir = game.get_dir_nn(&nn);
-                game.update(dir);
-                game.next_tick(args.dt);
-            }
-
-            if let Some(button) = e.press_args() {
-                self.handle_events(button, &mut game);
-            }
-        }
-    }
-
-    pub fn run_ql(&mut self, mut ql: &mut QLearner) {
-        let mut game = Game::new();
-        game.init();
-
-        while let Some(e) = self.events.next(&mut self.window) {
-            if let Some(args) = e.render_args() {
-                self.render_game(&args, &game);
-            }
-
-            if let Some(args) = e.update_args() {
-                let dir = game.get_dir_ql(&mut ql);
+                let dir = game.get_dir_from_brain(brain);
                 game.update(dir);
                 game.next_tick(args.dt);
             }
