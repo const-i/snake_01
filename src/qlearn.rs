@@ -2,15 +2,9 @@ extern crate rand;
 
 use itertools::Itertools;
 use rand::Rng;
-use rand_distr::{Distribution, Normal};
 
 use crate::constants::*;
-
-fn get_normal() -> f64 {
-    let mut rng = rand::thread_rng();
-    let normal = Normal::new(0.0, 1.0).unwrap();
-    normal.sample(&mut rng)
-}
+use crate::game::Brain;
 
 pub struct StateAction {
     pub state: Vec<f64>,
@@ -22,7 +16,7 @@ impl StateAction {
         StateAction {
             state,
             //quality: (0..num_actions).map(|_| get_normal()).collect(),
-            quality: vec![0.0_f64; num_actions], // Initializing at 0 gives objectively better results
+            quality: vec![0.0_f64; num_actions], // Initializing at 0 gives objectively better results than using a normal distribution
         }
     }
 }
@@ -55,20 +49,22 @@ impl QLearner {
             num_actions,
         }
     }
+}
 
-    pub fn get_action(&mut self, state: &Vec<f64>) -> usize {
+impl Brain for QLearner {
+    fn get_action(&mut self, state: &Vec<f64>) -> Option<usize> {
         // Following the epsilon-greedy policy
         let mut rng = rand::thread_rng();
         if rng.gen::<f64>() > 1.0_f64 - self.epsilon {
-            rng.gen_range(0, self.num_actions)
+            Some(rng.gen_range(0, self.num_actions))
         } else {
             let found = self.q.iter().find(|sa| sa.state == *state);
             match found {
-                Some(sa) => get_index_max_float(&sa.quality).unwrap(),
+                Some(sa) => get_index_max_float(&sa.quality),
                 None => {
                     let state_copy: Vec<f64> = state.iter().copied().map(|x| x).collect();
                     let sa = StateAction::new(state_copy, self.num_actions);
-                    let action = get_index_max_float(&sa.quality).unwrap();
+                    let action = get_index_max_float(&sa.quality);
                     self.q.push(sa);
                     action
                 }
@@ -76,13 +72,7 @@ impl QLearner {
         }
     }
 
-    pub fn update_q(
-        &mut self,
-        state_initial: &Vec<f64>,
-        action: usize,
-        reward: f64,
-        state_final: &Vec<f64>,
-    ) -> Option<bool> {
+    fn train(&mut self, state_initial: &Vec<f64>, action: usize, reward: f64, state_final: &Vec<f64>) -> Option<bool> {
         let index_initial = self.q.iter().position(|sa| sa.state == *state_initial);
         let index_final = self.q.iter().position(|sa| sa.state == *state_final);
         if index_initial == None || index_final == None {
@@ -126,7 +116,8 @@ mod tests {
 
     #[test]
     fn test_get_index_max_float() {
-        let q: Vec<f64> = (0..4).map(|_| get_normal()).collect();
+        let mut rng = rand::thread_rng();
+        let q: Vec<f64> = (0..4).map(|_| rng.gen()).collect();
         println!("{:?}", q);
         let i = get_index_max_float(&q);
         println!("{:?}", i);
@@ -135,7 +126,8 @@ mod tests {
 
     #[test]
     fn test_get_max_float() {
-        let q: Vec<f64> = (0..4).map(|_| get_normal()).collect();
+        let mut rng = rand::thread_rng();
+        let q: Vec<f64> = (0..4).map(|_| rng.gen()).collect();
         println!("{:?}", q);
         let q_max = get_max_float(&q);
         println!("{:?}", q_max);
@@ -157,6 +149,6 @@ mod tests {
         let state = vec![0.0_f64; 8];
         let action = ql.get_action(&state);
         println!("{:?}", get_index_max_float(&ql.q[0].quality));
-        assert_eq!(action, get_index_max_float(&ql.q[0].quality).unwrap());
+        assert_eq!(action, get_index_max_float(&ql.q[0].quality));
     }
 }

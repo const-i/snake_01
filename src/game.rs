@@ -5,8 +5,13 @@ use std::collections::VecDeque;
 use std::fmt;
 
 use crate::constants::*;
-use crate::gen_alg::{Layer, Population, NN};
+use crate::gen_alg::NN;
 use crate::qlearn::QLearner;
+
+pub trait Brain {
+    fn get_action(&mut self, inputs: &Vec<f64>) -> Option<usize>;
+    fn train(&mut self, state_initial: &Vec<f64>, action: usize, reward: f64, state_final: &Vec<f64>) -> Option<bool>;
+}
 
 #[derive(Copy, Clone)]
 pub struct Position {
@@ -221,57 +226,12 @@ impl Game {
         }
     }
 
-    pub fn create_nn() -> NN {
-        let mut nn = NN::new();
-        let layer1 = Layer::new(8, 8).unwrap();
-        let layer2 = Layer::new(8, 4).unwrap();
-        nn.add(layer1);
-        nn.add(layer2);
-        nn
-    }
-
-    pub fn run_nn(&mut self, nn: &NN, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
-        self.init();
-        let mut fitness: f64 = 0f64;
-        while self.snake.alive {
-            let dir = self.get_dir_nn(&nn);
-            self.update(dir);
-
-            // Before moving store some results
-            let dist_before = self.get_food_dist();
-            let time_before = self.time;
-
-            // Make the move
-            self.next_tick(1f64);
-
-            // After the move store some results
-            let dist_after = self.get_food_dist();
-            let time_after = self.time;
-            let snake_eat = if self.snake.eat { 1i64 } else { 0i64 };
-            let snake_dead = if self.snake.alive { 0i64 } else { 1i64 };
-
-            // Add to fitness
-            fitness += fitness_function(
-                time_after as i64 - time_before as i64,
-                dist_before,
-                dist_after,
-                snake_eat,
-                snake_dead,
-            );
-
-            if self.time >= NN_MAX_GAME_TIME {
-                self.snake.alive = false;
-            }
-        }
-        fitness
-    }
-
-    pub fn run_ql(&mut self, ql: &mut QLearner, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
+    pub fn run_brain<T: Brain>(&mut self, brain: &mut T, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
         self.init();
         let mut fitness: f64 = 0f64;
         while self.snake.alive {
             let state_initial = self.get_nn_inputs();
-            let action = ql.get_action(&state_initial);
+            let action = brain.get_action(&state_initial).unwrap();
             let dir = self.get_direction_from_index(action);
             self.update(dir);
 
@@ -300,7 +260,7 @@ impl Game {
             fitness += fit;
 
             // Update the Q Matrix
-            ql.update_q(&state_initial, action, fit, &state_final);
+            brain.train(&state_initial, action, fit, &state_final);
 
             // End if we are out of time
             if self.time >= NN_MAX_GAME_TIME {
@@ -310,20 +270,8 @@ impl Game {
         fitness
     }
 
-    pub fn get_dir_nn(&mut self, nn: &NN) -> Direction {
-        let nn_out = nn.propagate(self.get_nn_inputs()).unwrap();
-        let i_max = nn_out
-            .iter()
-            .enumerate()
-            .map(|(i, v)| (v, i))
-            .max_by(|a, b| a.partial_cmp(b).expect("Nan!"))
-            .unwrap()
-            .1;
-        self.get_direction_from_index(i_max)
-    }
-
-    pub fn get_dir_ql(&mut self, ql: &mut QLearner) -> Direction {
-        self.get_direction_from_index(ql.get_action(&self.get_nn_inputs()))
+    pub fn get_dir_from_brain<T: Brain>(&self, brain: &mut T) -> Direction {
+        self.get_direction_from_index(brain.get_action(&self.get_nn_inputs()).unwrap())
     }
 
     pub fn get_direction_from_index(&self, index: usize) -> Direction {
@@ -334,14 +282,6 @@ impl Game {
             3 => Direction::DOWN,
             _ => self.snake.direction,
         }
-    }
-
-    pub fn get_population(num_nn: u32) -> Population {
-        let mut pop = Population::new();
-        for _ in 0..num_nn {
-            pop.add(Game::create_nn());
-        }
-        pop
     }
 
     fn get_food_pos(&mut self) -> Position {
@@ -680,29 +620,39 @@ mod tests {
     }
 
     #[test]
-    fn test_game_get_dir_nn() {
+    fn test_game_get_dir_from_brain() {
         let mut game = Game::new();
         game.init();
-        let mut nn = NN::new();
-        let layer1 = Layer::new(8, 8).unwrap();
-        let layer2 = Layer::new(8, 4).unwrap();
-        nn.add(layer1);
-        nn.add(layer2);
-        let board = game.get_nn_inputs();
-        println!("{:?}", board);
-        let out = nn.propagate(board);
-        println!("{:?}", out);
-        let dir = game.get_dir_nn(&mut nn);
+        let mut nn = NN::new_defined(&[[8, 8], [8, 6], [6, 4]]);
+        let dir = game.get_dir_from_brain(&mut nn);
         println!("{:?}", dir);
-        //assert!(false);
+        let mut ql = QLearner::new(8, 4);
+        let dir = game.get_dir_from_brain(&mut ql);
+        println!("{:?}", dir);
+        assert!(true);
     }
 
     #[test]
-    fn test_game_create_nn() {
-        let nn = Game::create_nn();
-        assert_eq!(nn.layers.len(), 2);
-        assert_eq!(nn.layers[0].num_inputs, 8);
-        assert_eq!(nn.layers[1].num_neurons, 4);
+    fn test_game_get_dir_nn() {
+        let mut game = Game::new();
+        game.init();
+        let mut nn = NN::new_defined(&[[8, 8], [8, 6], [6, 4]]);
+        let board = game.get_nn_inputs();
+        let out = nn.propagate(&board).unwrap();
+        let dir = game.get_dir_from_brain(&mut nn);
+
+        fn get_index_max_float(input: &Vec<f64>) -> Option<usize> {
+            input
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(index, _)| index)
+        }
+
+        let max_i = get_index_max_float(&out).unwrap();
+        let max_dir = game.get_direction_from_index(max_i);
+
+        assert_eq!(dir, max_dir);
     }
 
     #[test]
@@ -725,12 +675,8 @@ mod tests {
 
         let mut game = Game::new();
         game.init();
-        let mut nn = NN::new();
-        let layer1 = Layer::new(8, 8).unwrap();
-        let layer2 = Layer::new(8, 4).unwrap();
-        nn.add(layer1);
-        nn.add(layer2);
-        game.run_nn(&mut nn, fitness_function);
+        let mut nn = NN::new_defined(&[[8, 8], [8, 4]]);
+        game.run_brain(&mut nn, fitness_function);
         println!("{}", game.time);
         assert!(game.time >= cmp::min(BOARD_WIDTH as u32, BOARD_HEIGHT as u32) / 2);
     }
