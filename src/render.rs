@@ -5,6 +5,7 @@ extern crate piston;
 
 use crate::constants::*;
 use crate::game::{Block, Brain, Direction, Game};
+use crate::pathfind::AStar;
 
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
@@ -66,6 +67,58 @@ impl Render {
 
             if let Some(args) = e.update_args() {
                 let dir = game.get_dir_from_brain(brain);
+                game.update(dir);
+                game.next_tick(args.dt);
+            }
+
+            if let Some(button) = e.press_args() {
+                self.handle_events(button, &mut game);
+            }
+        }
+    }
+
+    pub fn run_astar(&mut self) {
+        let mut game = Game::new();
+        game.init();
+
+        while let Some(e) = self.events.next(&mut self.window) {
+            if let Some(args) = e.render_args() {
+                self.render_game(&args, &game);
+            }
+
+            if let Some(args) = e.update_args() {
+                let mut board = vec![vec![0; BOARD_HEIGHT as usize]; BOARD_WIDTH as usize];
+                for i in 0..game.snake.body.len() {
+                    board[game.snake.body[i].position.x as usize][game.snake.body[i].position.y as usize] = 1;
+                }
+
+                let mut astar = AStar::new(game.snake.body[0].position, game.food.position, board);
+                astar.calc_path();
+                let path = astar.get_path();
+                let mut dir = game.snake.direction;
+                if path.len() > 1 {
+                    let mut head = game.snake.body[0].position.clone();
+                    head.offset(1, 0);
+                    if path[1] == head {
+                        dir = Direction::RIGHT
+                    }
+                    head = game.snake.body[0].position.clone();
+                    head.offset(0, -1);
+                    if path[1] == head {
+                        dir = Direction::UP
+                    }
+                    head = game.snake.body[0].position.clone();
+                    head.offset(-1, 0);
+                    if path[1] == head {
+                        dir = Direction::LEFT
+                    }
+                    head = game.snake.body[0].position.clone();
+                    head.offset(0, 1);
+                    if path[1] == head {
+                        dir = Direction::DOWN
+                    }
+                }
+
                 game.update(dir);
                 game.next_tick(args.dt);
             }

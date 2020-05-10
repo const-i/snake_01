@@ -1,6 +1,7 @@
 mod constants;
 mod game;
 mod gen_alg;
+mod pathfind;
 mod qlearn;
 mod render;
 
@@ -18,10 +19,11 @@ enum GameType {
     Human,
     GeneticAlgorithm,
     QLearning,
+    AStar,
 }
 
 fn main() {
-    let game_type = GameType::QLearning;
+    let game_type = GameType::AStar;
 
     match game_type {
         GameType::Human => render_game(),
@@ -29,6 +31,7 @@ fn main() {
             iterate_population(NUM_INDIVIDUALS, NUM_GAMES_NN, NUM_GENERATIONS, fitness_function_nn)
         }
         GameType::QLearning => iterate_qls(NUM_QLS, NUM_GAMES_QL, fitness_function_ql),
+        GameType::AStar => render_astar_game(),
     }
 }
 
@@ -149,7 +152,6 @@ fn ql_play_parallel(
 // ----------------------------------Generic Brain---------------------------------------
 // --------------------------------------------------------------------------------------
 
-
 fn play_brain<T: Brain>(brain: &mut T, num_games: u32, fitness_function: fn(i64, i64, i64, i64, i64) -> f64) -> f64 {
     let mut game = Game::new();
     let mut fitness: f64 = 0f64;
@@ -158,6 +160,15 @@ fn play_brain<T: Brain>(brain: &mut T, num_games: u32, fitness_function: fn(i64,
         fitness += game.run_brain(brain, fitness_function);
     }
     fitness / num_games as f64
+}
+
+// --------------------------------------------------------------------------------------
+// ----------------------------------Human Game------------------------------------------
+// --------------------------------------------------------------------------------------
+
+fn render_astar_game() {
+    let mut render = Render::new();
+    render.run_astar();
 }
 
 // --------------------------------------------------------------------------------------

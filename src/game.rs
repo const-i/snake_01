@@ -27,13 +27,17 @@ impl Position {
         }
     }
 
+    pub fn new_xy(x: u8, y: u8) -> Position {
+        Position { x, y }
+    }
+
     fn new_offset(x: i8, y: i8) -> Position {
         let mut pos = Position::new();
         pos.offset(x, y);
         pos
     }
 
-    fn offset(&mut self, x: i8, y: i8) {
+    pub fn offset(&mut self, x: i8, y: i8) {
         self.x = Position::calc_offset(self.x, x, BOARD_WIDTH);
         self.y = Position::calc_offset(self.y, y, BOARD_HEIGHT);
     }
