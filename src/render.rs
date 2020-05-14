@@ -3,8 +3,10 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
+use crate::common::Point;
 use crate::constants::*;
 use crate::game::{Block, Brain, Direction, Game};
+use crate::longest::LongestCycle;
 
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
@@ -72,6 +74,81 @@ impl Render {
 
             if let Some(button) = e.press_args() {
                 self.handle_events(button, &mut game);
+            }
+        }
+    }
+
+    pub fn run_longest(&mut self) {
+        let mut game = Game::new();
+        game.init();
+
+        let mut board = vec![vec![0_i8; BOARD_WIDTH as usize]; BOARD_HEIGHT as usize];
+        for part in game.snake.body.iter() {
+            board[part.position.y as usize][part.position.x as usize] = 1_i8;
+        }
+
+        let start = Point {
+            x: game.snake.body[0].position.y as usize,
+            y: game.snake.body[0].position.x as usize,
+        };
+        let target = Point {
+            x: game.snake.body[game.snake.body.len() - 1].position.y as usize,
+            y: game.snake.body[game.snake.body.len() - 1].position.x as usize,
+        };
+        if let Some(longest) = LongestCycle::new(
+            &board,
+            Point::get_index_from_point(BOARD_WIDTH as usize, &start),
+            Point::get_index_from_point(BOARD_WIDTH as usize, &target),
+        ) {
+            if let Some(cycle) = longest.get_longest_cycle() {
+                println!("Length: {:?}; Cycle: {:?}", cycle.len(), cycle);
+                
+                let mut current_index = 0;
+                
+                while let Some(e) = self.events.next(&mut self.window) {
+                    if let Some(args) = e.render_args() {
+                        self.render_game(&args, &game);
+                    }
+
+                    if let Some(args) = e.update_args() {
+                    
+                        let current_i = cycle[current_index];
+                        let next_i = cycle[(current_index + cycle.len() - 1) % cycle.len()];
+                        
+                        let current_point = Point::get_point_from_index(BOARD_WIDTH as usize, current_i);
+                        let next_point = Point::get_point_from_index(BOARD_WIDTH as usize, next_i);
+                        
+                        //println!("Current: {:?}, Next: {:?}", current_point, next_point);
+                        
+                        let mut dir = game.snake.direction;
+                        if next_point.x == current_point.x + 1 {
+                            dir = Direction::UP;
+                        }
+                        else if next_point.x + 1 == current_point.x {
+                            dir = Direction::DOWN;
+                        }
+                        else if next_point.y == current_point.y + 1 {
+                            dir = Direction::LEFT;
+                        }
+                        else if next_point.y + 1 == current_point.y {
+                            dir = Direction::RIGHT;
+                        }
+                        else {
+                            dir = game.snake.direction;
+                        }
+                    
+                        current_index = (current_index + cycle.len() - 1) % cycle.len();
+                        game.update(dir);
+                        game.next_tick(args.dt);
+                    }
+
+                    if let Some(button) = e.press_args() {
+                        self.handle_events(button, &mut game);
+                        current_index = 0;
+                    }
+                }
+                
+                
             }
         }
     }

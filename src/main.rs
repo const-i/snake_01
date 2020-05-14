@@ -3,6 +3,9 @@ mod game;
 mod gen_alg;
 mod qlearn;
 mod render;
+mod astar;
+mod longest;
+mod common;
 
 extern crate rayon;
 
@@ -18,10 +21,11 @@ enum GameType {
     Human,
     GeneticAlgorithm,
     QLearning,
+    LongestPath,
 }
 
 fn main() {
-    let game_type = GameType::QLearning;
+    let game_type = GameType::LongestPath;
 
     match game_type {
         GameType::Human => render_game(),
@@ -29,6 +33,7 @@ fn main() {
             iterate_population(NUM_INDIVIDUALS, NUM_GAMES_NN, NUM_GENERATIONS, fitness_function_nn)
         }
         GameType::QLearning => iterate_qls(NUM_QLS, NUM_GAMES_QL, fitness_function_ql),
+        GameType::LongestPath => render_longest_path_game(),
     }
 }
 
@@ -158,6 +163,12 @@ fn play_brain<T: Brain>(brain: &mut T, num_games: u32, fitness_function: fn(i64,
         fitness += game.run_brain(brain, fitness_function);
     }
     fitness / num_games as f64
+}
+
+
+fn render_longest_path_game() {
+    let mut render = Render::new();
+    render.run_longest();
 }
 
 // --------------------------------------------------------------------------------------
