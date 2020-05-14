@@ -5,7 +5,7 @@ extern crate piston;
 
 use crate::constants::*;
 use crate::game::{Block, Brain, Direction, Game};
-use crate::pathfind::AStar;
+use crate::pathfind::{AStar, Hamiltonian};
 
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
@@ -127,6 +127,72 @@ impl Render {
                 self.handle_events(button, &mut game);
             }
         }
+    }
+    
+    pub fn run_hamiltonian(&mut self) {
+        let mut game = Game::new();
+        game.init();
+        let start: usize = game.snake.body[0].position.y as usize * BOARD_WIDTH as usize + game.snake.body[0].position.x as usize;
+        let mut ham = Hamiltonian::new(BOARD_WIDTH as usize, BOARD_HEIGHT as usize, start);
+        let path_maybe = ham.calc_hamiltonian_cycle();
+        
+        println!("{:?}", path_maybe);
+        //assert!(false);
+        
+        if path_maybe.is_some() {
+            let path = path_maybe.unwrap();
+            let mut index = 0;
+            let mut dir = game.snake.direction;
+            
+            
+            while let Some(e) = self.events.next(&mut self.window) {
+                if let Some(args) = e.render_args() {
+                    self.render_game(&args, &game);
+                }
+
+                if let Some(args) = e.update_args() {
+                    let this_pos = path[index];
+                    let next_pos = path[(index + path.len() - 1) % path.len()];
+                    
+                    //println!("This: {:?}; Next: {:?}", this_pos, next_pos);
+                    
+                    
+                    if next_pos == this_pos + BOARD_WIDTH as usize {
+                        dir = Direction::DOWN;
+                    }
+                    else if next_pos == this_pos + 1 {
+                        dir = Direction::RIGHT;
+                    }
+                    else if next_pos == this_pos - 1 {
+                        dir = Direction::LEFT;
+                    }
+
+                    else if next_pos == this_pos - BOARD_WIDTH as usize {
+                        dir = Direction::UP;
+                    }
+                    else {
+                        dir = game.snake.direction;
+                    }
+                    
+                    
+                    index = (index + path.len() - 1) % path.len();
+                    game.update(dir);
+                    let pos1 = game.snake.body[0].position.clone();
+                    game.next_tick(args.dt);
+                    let pos2 = game.snake.body[0].position.clone();
+                    //assert_ne!(pos1, pos2);
+                    
+                }
+
+                if let Some(button) = e.press_args() {
+                    self.handle_events(button, &mut game);
+                }
+            }
+        }
+        else {
+            self.run();
+        }
+
     }
 
     fn handle_events(&mut self, button: Button, game: &mut Game) {

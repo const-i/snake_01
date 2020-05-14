@@ -20,6 +20,7 @@ enum GameType {
     GeneticAlgorithm,
     QLearning,
     AStar,
+    Hamiltonian,
 }
 
 fn main() {
@@ -32,6 +33,7 @@ fn main() {
         }
         GameType::QLearning => iterate_qls(NUM_QLS, NUM_GAMES_QL, fitness_function_ql),
         GameType::AStar => render_astar_game(),
+        GameType::Hamiltonian => render_hamiltonian_game(),
     }
 }
 
@@ -163,12 +165,21 @@ fn play_brain<T: Brain>(brain: &mut T, num_games: u32, fitness_function: fn(i64,
 }
 
 // --------------------------------------------------------------------------------------
-// ----------------------------------Human Game------------------------------------------
+// ----------------------------------AStar Game------------------------------------------
 // --------------------------------------------------------------------------------------
 
 fn render_astar_game() {
     let mut render = Render::new();
     render.run_astar();
+}
+
+// --------------------------------------------------------------------------------------
+// ----------------------------------Hamiltonian Game------------------------------------
+// --------------------------------------------------------------------------------------
+
+fn render_hamiltonian_game() {
+    let mut render = Render::new();
+    render.run_hamiltonian();
 }
 
 // --------------------------------------------------------------------------------------

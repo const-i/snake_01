@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::constants::*;
 use crate::game::Position;
 
@@ -187,6 +189,126 @@ impl AStar {
     }
 }
 
+
+pub struct Hamiltonian {
+    graph: HashMap<usize, Vec<usize>>,
+    width: usize, 
+    height: usize,
+    start: usize,
+    path: Option<Vec<usize>>,
+    calculated: bool,
+}
+
+impl Hamiltonian {
+
+    pub fn new(width: usize, height: usize, start: usize) -> Hamiltonian {
+        Hamiltonian {
+            width, 
+            height, 
+            start,
+            graph: Hamiltonian::create_graph(width, height),
+            path: None,
+            calculated: false,
+        }
+    }
+    
+    pub fn calc_hamiltonian_cycle(&mut self) -> Option<Vec<usize>> {
+        if !self.calculated {
+            let mut path: Vec<usize> = Vec::new();
+            self.path = Hamiltonian::hamilton(&self.graph, self.graph.len(), self.start, &mut path);
+        }
+        self.path.clone()
+    }
+    
+    fn create_graph(width: usize, height: usize) -> HashMap<usize, Vec<usize>> {
+
+        let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
+        
+        let mut index: usize = 0;
+        for i in 0..width {
+            for j in 0..height {
+                let mut this_list: Vec<usize> = Vec::new();
+                if index % width != 0 {
+                    this_list.push(index - 1);
+                }
+                if index % width != width - 1 {
+                    this_list.push(index + 1);
+                }
+                if index >= width {
+                    this_list.push(index - width);
+                }
+                if index < width * (height - 1) {
+                    this_list.push(index + width);
+                }
+                graph.insert(index, this_list.clone());
+                index += 1;
+            }
+        }
+        
+        graph
+
+    }
+    
+    fn hamilton(
+        graph: &HashMap<usize, Vec<usize>>,
+        size: usize,
+        point: usize,
+        path: &mut Vec<usize>,
+    ) -> Option<Vec<usize>> {
+
+        //println!("Called Path: {:?}, Point: {:?}", &path, &point);
+        if !path.iter().any(|&pt| pt == point) {
+            path.push(point);
+
+            if path.len() == size {
+                if let Some(next_points) = graph.get(&point) {
+                    if next_points.iter().any(|&pt| pt == path[0]) {
+                        return Some(path.clone());
+                    } else {
+                        return None;
+                    }
+                }
+            }
+
+            if let Some(next_points) = graph.get(&point) {
+                //println!("Next Points: {:?}", &next_points);
+
+                for this_point in next_points.iter() {
+                    let mut res_path = path.clone();
+                    let candidate = Hamiltonian::hamilton(graph, size, *this_point, &mut res_path);
+                    if candidate.is_some() {
+                        return candidate;
+                    }
+                }
+                //println!("Deadend: {:?}", &path);
+            }
+        } else {
+            //println!("Point {:?} already in path: {:?}", &point, &path);
+        }
+
+        None
+    }
+
+}
+
+
+fn longest() {
+
+    let mut board = vec![vec![0; BOARD_WIDTH as usize]; BOARD_HEIGHT as usize];
+    //board[5][5] = 1;
+    board[4][5] = 1;
+    //board[3][5] = 1;
+    
+    let start = Position::new_xy(5, 5);
+    let end = Position::new_xy(3, 5);
+    let mut astar = AStar::new(start, end, board);
+    astar.calc_path();
+    println!("{:?}", astar.path);
+    
+
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -252,4 +374,52 @@ mod tests {
         println!("{:?}", astar.path);
         assert_eq!(astar.path.len(), 4);
     }
+
+    #[test]
+    fn test_hamiltonian_new() {
+        let mut ham = Hamiltonian::new(5, 6, 3);
+        assert_eq!(ham.graph.len(), 30);
+        assert_eq!(ham.graph.get(&0).unwrap().len(), 2);
+        assert_eq!(ham.graph.get(&4).unwrap().len(), 2);
+        assert_eq!(ham.graph.get(&25).unwrap().len(), 2);
+        assert_eq!(ham.graph.get(&29).unwrap().len(), 2);
+    }
+    
+    #[test]
+    fn test_create_graph() {
+        let mut ham = Hamiltonian::new(5, 6, 3);
+        let path = ham.calc_hamiltonian_cycle();
+        println!("{:?}", path);
+        assert!(path.is_some());
+        let this_path = path.unwrap();
+        assert_eq!(this_path.len(), 5*6);
+        assert_eq!(this_path[0], 3);
+        let mut ham = Hamiltonian::new(3, 3, 0);
+        let path = ham.calc_hamiltonian_cycle();
+        println!("{:?}", path);
+        assert!(path.is_none());
+        let mut ham = Hamiltonian::new(2, 2, 0);
+        let path = ham.calc_hamiltonian_cycle();
+        println!("{:?}", path);
+        assert!(path.is_some());
+        let this_path = path.unwrap();
+        assert_eq!(this_path.len(), 2*2);
+        assert_eq!(this_path[0], 0);
+    }
+    
+    #[test]
+    fn test_hamiltonian_max() {
+        let mut ham = Hamiltonian::new(6, 6, 0);
+        let path = ham.calc_hamiltonian_cycle();
+        println!("{:?}", path);
+        assert!(path.is_some());
+        assert_eq!(path.unwrap().len(), 6*6);
+    }
+    
+    #[test]
+    fn test_longest() {
+        longest();
+        assert!(false);
+    }
+    
 }
