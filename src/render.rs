@@ -1,22 +1,11 @@
-extern crate glutin_window;
-extern crate graphics;
-extern crate opengl_graphics;
-extern crate piston;
-
 use crate::constants::*;
 use crate::game::{Block, Brain, Direction, Game};
 
-use glutin_window::GlutinWindow;
-use opengl_graphics::{GlGraphics, OpenGL};
-use piston::event_loop::{EventLoop, EventSettings, Events};
-use piston::input::keyboard::Key;
-use piston::input::{Button, PressEvent, RenderArgs, RenderEvent, UpdateEvent}; //UpdateArgs
-use piston::window::WindowSettings;
+use piston_window::*;
 
 pub struct Render {
-    window: GlutinWindow,
+    window: PistonWindow,
     events: Events,
-    gl: GlGraphics,
 }
 
 impl Render {
@@ -32,7 +21,6 @@ impl Render {
             .build()
             .unwrap(),
             events: Events::new(EventSettings::new().ups(RENDER_UPS).max_fps(RENDER_FPS_MAX)),
-            gl: GlGraphics::new(OpenGL::V3_2),
         }
     }
 
@@ -42,7 +30,7 @@ impl Render {
 
         while let Some(e) = self.events.next(&mut self.window) {
             if let Some(args) = e.render_args() {
-                self.render_game(&args, &game);
+                self.render_game(&args, &game, &e);
             }
 
             if let Some(args) = e.update_args() {
@@ -61,7 +49,7 @@ impl Render {
 
         while let Some(e) = self.events.next(&mut self.window) {
             if let Some(args) = e.render_args() {
-                self.render_game(&args, &game);
+                self.render_game(&args, &game, &e);
             }
 
             if let Some(args) = e.update_args() {
@@ -90,21 +78,20 @@ impl Render {
         }
     }
 
-    fn render_game(&mut self, args: &RenderArgs, game: &Game) {
-        self.gl.draw(args.viewport(), |_c, g| {
-            graphics::clear(BLACK, g);
+    fn render_game(&mut self, _args: &RenderArgs, game: &Game, e: &Event) {
+        self.window.draw_2d(e, |_, g, _| {
+            clear([1.0; 4], g);
         });
         for b in game.snake.body.iter() {
-            self.render_block(&b);
+            self.render_block(&b, e);
         }
-        self.render_block(&game.food);
+        self.render_block(&game.food, e);
     }
 
-    fn render_block(&mut self, block: &Block) {
+    fn render_block(&mut self, block: &Block, e: &Event) {
         //args: &RenderArgs
 
         use graphics::math::Matrix2d;
-        use graphics::Transformed;
 
         let square_ = graphics::rectangle::Rectangle::new(block.colour).border(graphics::rectangle::Border {
             color: BLACK,
@@ -121,7 +108,8 @@ impl Render {
                 (block.position.x as f64) * 2.0 / BOARD_WIDTH as f64,
                 -(block.position.y as f64) * 2.0 / BOARD_HEIGHT as f64,
             );
-        let draw_state_ = graphics::draw_state::DrawState::default();
-        square_.draw(dims_, &draw_state_, transform_, &mut self.gl);
+        self.window.draw_2d(e, |c, g, _| {
+            square_.draw(dims_, &c.draw_state, transform_, g);
+        });
     }
 }
