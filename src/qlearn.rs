@@ -56,7 +56,7 @@ impl Brain for QLearner {
         // Following the epsilon-greedy policy
         let mut rng = rand::thread_rng();
         if rng.gen::<f64>() > 1.0_f64 - self.epsilon {
-            Some(rng.gen_range(0, self.num_actions))
+            Some(rng.gen_range(0..self.num_actions))
         } else {
             let found = self.q.iter().find(|sa| sa.state == *state);
             match found {
