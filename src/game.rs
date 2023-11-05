@@ -288,8 +288,8 @@ impl Game {
         let mut rng = rand::thread_rng();
         loop {
             let pos = Position {
-                x: rng.gen_range(0, BOARD_WIDTH),
-                y: rng.gen_range(0, BOARD_HEIGHT),
+                x: rng.gen_range(0..BOARD_WIDTH),
+                y: rng.gen_range(0..BOARD_HEIGHT),
             };
             if !self.snake.check_collide_body(pos) {
                 return pos;
